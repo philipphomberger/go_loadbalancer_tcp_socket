@@ -8,10 +8,9 @@ import (
 	"net"
 )
 
-var ServerPool = []string{"localhost:5432", "localhost:5433"}
 var i int = 0
 
-func Server() {
+func Server(serverPool client.ServerPool) {
 	// Listen for incoming connections on port 8080
 	ln, err := net.Listen("tcp", ":8080")
 	if err != nil {
@@ -28,34 +27,21 @@ func Server() {
 		}
 
 		// Handle the connection in a new goroutine
-		i = models.Next(i, ServerPool)
-		go handleConnection(conn, i)
+		serverPool = client.GetReadyTargets(serverPool)
+		i = models.Next(i, serverPool)
+		if serverPool.Servers[i].Available {
+			i = models.Next(i, serverPool)
+		}
+		go handleConnection(conn, i, serverPool)
 	}
 }
 
-func handleConnection(conn net.Conn, counter int) {
+func handleConnection(conn net.Conn, counter int, serverPool client.ServerPool) {
 	// Close the connection when we're done
 	defer conn.Close()
-	c := client.Client(ServerPool[counter])
+	c := client.Client(serverPool.Servers[counter].Name + ":" + serverPool.Servers[counter].Port)
 	defer c.Close()
 
 	go io.Copy(c, conn)
 	io.Copy(conn, c)
-
-	/*	// Read incoming data
-		buf := make([]byte, 1024)
-		_, err := conn.Read(buf)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		// Print the incoming data
-		fmt.Printf("Received: %s", buf)
-		i = models.Next(i, ServerPool)
-		client.Client(buf, ServerPool[i])
-		if i == 0 {
-			i = 1
-		}*/
-
 }
