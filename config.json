@@ -1,0 +1,14 @@
+{
+  "Servers": [
+    {
+      "Name": "localhost",
+      "Port": "5432",
+      "Available": true
+    },
+    {
+      "Name": "localhost",
+      "Port": "5433",
+      "Available": true
+    }
+  ]
+}
